@@ -35,17 +35,17 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  15 .debug_rnglists 00000c86  00000000  00000000  0001d798  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0001c101  00000000  00000000  0001e41e  2**0
+ 16 .debug_macro  0001b666  00000000  00000000  0001e41e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00013e13  00000000  00000000  0003a51f  2**0
+ 17 .debug_line   00013e1d  00000000  00000000  00039a84  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000aa469  00000000  00000000  0004e332  2**0
+ 18 .debug_str    000aa48e  00000000  00000000  0004d8a1  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  000f879b  2**0
+ 19 .comment      00000043  00000000  00000000  000f7d2f  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00004058  00000000  00000000  000f87e0  2**2
+ 20 .debug_frame  00004058  00000000  00000000  000f7d74  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000048  00000000  00000000  000fc838  2**0
+ 21 .debug_line_str 0000005e  00000000  00000000  000fbdcc  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -3493,7 +3493,7 @@ int main(void) {
  8001b7a:	2b0a      	cmp	r3, #10
  8001b7c:	d95f      	bls.n	8001c3e <main+0x206>
 			// Read initial IR sensor values
-			GPIO_PinState left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
+			GPIO_PinState  left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
  8001b7e:	1dfc      	adds	r4, r7, #7
  8001b80:	2390      	movs	r3, #144	@ 0x90
  8001b82:	05db      	lsls	r3, r3, #23

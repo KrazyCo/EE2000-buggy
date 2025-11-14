@@ -1,4 +1,6 @@
+"./Core/Inc/line_following.o"
 "./Core/Src/fonts.o"
+"./Core/Src/line_following.o"
 "./Core/Src/main.o"
 "./Core/Src/ssd1306.o"
 "./Core/Src/stm32f0xx_hal_msp.o"

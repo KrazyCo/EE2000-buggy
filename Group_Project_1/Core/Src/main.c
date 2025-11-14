@@ -24,6 +24,8 @@
 #include "fonts.h"
 #include "ssd1306.h"
 #include "stdio.h"
+
+#include "config.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,25 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define LEFT_SENSOR_PIN   GPIO_PIN_0
-#define LEFT_SENSOR_PORT  GPIOA
-#define RIGHT_SENSOR_PIN  GPIO_PIN_1
-#define RIGHT_SENSOR_PORT GPIOA
 
-#define TRIG_PIN GPIO_PIN_10
-#define TRIG_PORT GPIOA
-#define ECHO_PIN GPIO_PIN_4
-#define ECHO_PORT GPIOA
-
-// Base speed out of 999
-#define STRAIGHT_SPEED 600
-
-// Change in speed between wheels will cause slight veer, larger difference = larger veer
-#define VEER_OUTSIDE_SPEED 650  // Faster wheel
-#define VEER_INSIDE_SPEED 550   // Slower wheel
-
-// Recovery turn speed if buggy gets lost
-#define RECOVERY_TURN_SPEED 500
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,13 +61,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
-void move_forward(uint16_t speed);
-void move_backward(uint16_t speed);
-void turn_left(uint16_t speed);
-void turn_right(uint16_t speed);
-void stop_motors(void);
-void veer_left(uint16_t fast_speed, uint16_t slow_speed);
-void veer_right(uint16_t fast_speed, uint16_t slow_speed);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -178,7 +156,7 @@ int main(void) {
 
 		if (distance > 10) {
 			// Read initial IR sensor values
-			GPIO_PinState left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
+			GPIO_PinState  left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
 					LEFT_SENSOR_PIN);
 			GPIO_PinState right_val = HAL_GPIO_ReadPin(RIGHT_SENSOR_PORT,
 					RIGHT_SENSOR_PIN);
