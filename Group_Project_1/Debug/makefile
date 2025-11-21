@@ -60,8 +60,8 @@ all: main-build
 main-build: Group_Project_1.elf secondary-outputs
 
 # Tool invocations
-Group_Project_1.elf Group_Project_1.map: $(OBJS) $(USER_OBJS) Y:\EE2000\Group_Project_1\STM32F091RCTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Group_Project_1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"Y:\EE2000\Group_Project_1\STM32F091RCTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Group_Project_1.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Group_Project_1.elf Group_Project_1.map: $(OBJS) $(USER_OBJS) Y:\git\EE2000\ buggy\Group_Project_1\STM32F091RCTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Group_Project_1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"Y:\git\EE2000 buggy\Group_Project_1\STM32F091RCTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Group_Project_1.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

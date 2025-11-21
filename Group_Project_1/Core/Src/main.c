@@ -47,8 +47,8 @@
 #define STRAIGHT_SPEED 600
 
 // Change in speed between wheels will cause slight veer, larger difference = larger veer
-#define VEER_OUTSIDE_SPEED 650  // Faster wheel
-#define VEER_INSIDE_SPEED 550   // Slower wheel
+#define VEER_OUTSIDE_SPEED 550  // Faster wheel
+#define VEER_INSIDE_SPEED 500   // Slower wheel
 
 // Recovery turn speed if buggy gets lost
 #define RECOVERY_TURN_SPEED 500
@@ -175,7 +175,7 @@ int main(void) {
 		} else {
 			last_distance = distance;  // update the previous value
 		}
-
+		if (distance < 10) {stop_motors();}
 		if (distance > 10) {
 			// Read initial IR sensor values
 			GPIO_PinState left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
