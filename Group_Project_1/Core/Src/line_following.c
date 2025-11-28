@@ -6,14 +6,24 @@
  */
 
 #include "line_following.h"
+#include "motor_control.h"
 #include "config.h"
 #include "main.h"
+#include "ssd1306.h"
+
+enum Direction last_turn_direction;
+int left_turn_amount;
+int right_turn_amount;
+int lap_count;
 
 void line_following_init() {
 	last_turn_direction = FORWARD;
+	left_turn_amount = 0;
+	right_turn_amount = 0;
+	lap_count = 0;
 }
 
-int line_following_loop() {
+void line_following_loop(TIM_HandleTypeDef *htim1) {
 	// Read initial IR sensor values
 	GPIO_PinState left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
 			LEFT_SENSOR_PIN);
@@ -24,11 +34,43 @@ int line_following_loop() {
 
 	if (left_val == GPIO_PIN_RESET && right_val == GPIO_PIN_RESET && middle_val == GPIO_PIN_RESET) {
 		// Black Black Black - buggy on track so move forwards
-		move_forward(STRAIGHT_SPEED);
+		move_forwards(htim1);
 		last_turn_direction = FORWARD;
+		left_turn_amount = 0;
+		right_turn_amount = 0;
 	} else if (left_val == GPIO_PIN_SET && right_val == GPIO_PIN_RESET && middle_val == GPIO_PIN_RESET) {
 		// White Black Black - buggy is veering right slightly
-
+		left_turn_amount += left_slight_veer_step;
+		veer_left(htim1, left_turn_amount); // TODO: implement
+		last_turn_direction = LEFT;
+	} else if (left_val == GPIO_PIN_SET && right_val == GPIO_PIN_RESET && middle_val == GPIO_PIN_SET) {
+		// White White Black - buggy may be veering right strongly or finished a lap
+		if (last_turn_direction == LEFT) {
+			left_turn_amount += left_strong_veer_step;
+			veer_left(htim1, left_turn_amount); // TODO: implement
+		} else if (last_turn_direction == FORWARD) {
+			lap_passed();
+		}
+	} else if (left_val == GPIO_PIN_SET && right_val == GPIO_PIN_SET && middle_val == GPIO_PIN_SET) {
+		// White White White - buggy should have finished a lap - do not reset turning
+		lap_passed();
+	} else if (left_val == GPIO_PIN_RESET && right_val == GPIO_PIN_SET && middle_val == GPIO_PIN_RESET) {
+		// Black Black White - buggy is veering left slightly
+		right_turn_amount += right_slight_veer_step;
+		veer_right(htim1, right_turn_amount);
+		last_turn_direction = RIGHT;
+	} else if (left_val == GPIO_PIN_RESET && right_val == GPIO_PIN_SET && middle_val == GPIO_PIN_SET) {
+		// Black White White - buggy may be veering right strongly or finished a lap
+		if (last_turn_direction == RIGHT) {
+			right_turn_amount += right_strong_veer_step;
+			veer_right(htim1, right_turn_amount);
+		} else if (last_turn_direction == FORWARD) {
+			lap_passed();
+		}
 	}
 
+}
+
+void lap_passed() {
+	lap_count += 1;
 }

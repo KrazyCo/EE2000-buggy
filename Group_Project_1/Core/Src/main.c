@@ -25,6 +25,8 @@
 #include "ssd1306.h"
 #include "stdio.h"
 
+#include "line_following.h"
+
 #include "config.h"
 /* USER CODE END Includes */
 
@@ -112,7 +114,7 @@ int main(void) {
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
 
 	// Remember last turn for recovery
-	static int last_turn_direction = 0;
+//	static int last_turn_direction = 0;
 
 	// Oled Display control
 	SSD1306_Init();
@@ -155,43 +157,7 @@ int main(void) {
 		}
 
 		if (distance > 10) {
-			// Read initial IR sensor values
-			GPIO_PinState  left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
-					LEFT_SENSOR_PIN);
-			GPIO_PinState right_val = HAL_GPIO_ReadPin(RIGHT_SENSOR_PORT,
-					RIGHT_SENSOR_PIN);
-
-			if (left_val == GPIO_PIN_RESET && right_val == GPIO_PIN_RESET) {
-				// Case 1: Black, Black = buggy is on track, move forward.
-				move_forward(STRAIGHT_SPEED);
-				last_turn_direction = 0;
-			} else if (left_val == GPIO_PIN_SET
-					&& right_val == GPIO_PIN_RESET) {
-				// Case 2: White, Black = buggy has veered left therefore veer right to correct
-				veer_right(VEER_OUTSIDE_SPEED, VEER_INSIDE_SPEED);
-				last_turn_direction = 2; // saved as turning right
-			} else if (left_val == GPIO_PIN_RESET
-					&& right_val == GPIO_PIN_SET) {
-				// Case 3: Black, White = buggy has veered right therefore veer left to correct.
-				veer_left(VEER_OUTSIDE_SPEED, VEER_INSIDE_SPEED);
-				last_turn_direction = 1; // save as turning left
-			} else // (left_val == GPIO_PIN_SET && right_val == GPIO_PIN_SET)
-			{
-
-				if (last_turn_direction == 1) // buggy was trying to turn left but drifted of to the right
-						{
-					// Recovery turn left to find line
-					turn_left(RECOVERY_TURN_SPEED);
-				} else if (last_turn_direction == 2) // buggy was trying to turn right but drifted of to the left
-						{
-					// Recovery turn right to find line
-					turn_right(RECOVERY_TURN_SPEED);
-				} else // buggy was going straight and lost line left and right
-				{
-					// continue to turn left until line found
-					turn_left(RECOVERY_TURN_SPEED);
-				}
-			}
+			line_following_loop(&htim1);
 		}
 
 		HAL_Delay(10);
@@ -469,12 +435,6 @@ static void MX_GPIO_Init(void) {
 }
 
 /* USER CODE BEGIN 4 */
-void move_forward(uint16_t speed) {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Left DIR = forward
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // Right DIR = forward
-}
 void move_backward(uint16_t speed) {
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed);
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, speed);
@@ -491,28 +451,6 @@ void turn_right(uint16_t speed) {
 
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, speed); // Left motor on
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0); // Right motor off
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Left DIR = forward
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // Right DIR = forward
-}
-void stop_motors(void) {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 0);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0);
-}
-
-// New Functions for steering
-
-// Veers the buggy left by turning right wheel faster than left wheel
-void veer_left(uint16_t fast_speed, uint16_t slow_speed) {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, slow_speed); // Left motor (slow)
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, fast_speed); // Right motor (fast)
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Left DIR = forward
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // Right DIR = forward
-}
-
-// Veers the buggy right by turning left wheel faster than right wheel
-void veer_right(uint16_t fast_speed, uint16_t slow_speed) {
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, fast_speed); // Left motor (fast)
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, slow_speed); // Right motor (slow)
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Left DIR = forward
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET); // Right DIR = forward
 }

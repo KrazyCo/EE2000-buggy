@@ -1,6 +1,5 @@
-Core/Src/line_following.o: ../Core/Src/line_following.c \
- ../Core/Inc/line_following.h ../Core/Inc/motor_control.h \
- ../Core/Inc/ssd1306.h \
+Core/Src/motor_control.o: ../Core/Src/motor_control.c \
+ ../Core/Inc/motor_control.h ../Core/Inc/ssd1306.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -30,9 +29,7 @@ Core/Src/line_following.o: ../Core/Src/line_following.c \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h \
- ../Core/Inc/fonts.h ../Core/Inc/config.h ../Core/Inc/main.h \
- ../Core/Inc/ssd1306.h
-../Core/Inc/line_following.h:
+ ../Core/Inc/fonts.h ../Core/Inc/ssd1306.h
 ../Core/Inc/motor_control.h:
 ../Core/Inc/ssd1306.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
@@ -65,6 +62,4 @@ Core/Src/line_following.o: ../Core/Src/line_following.c \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_uart_ex.h:
 ../Core/Inc/fonts.h:
-../Core/Inc/config.h:
-../Core/Inc/main.h:
 ../Core/Inc/ssd1306.h:

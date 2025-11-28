@@ -55,13 +55,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void move_forward(uint16_t speed);
 void move_backward(uint16_t speed);
 void turn_left(uint16_t speed);
 void turn_right(uint16_t speed);
-void stop_motors(void);
-void veer_left(uint16_t fast_speed, uint16_t slow_speed);
-void veer_right(uint16_t fast_speed, uint16_t slow_speed);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

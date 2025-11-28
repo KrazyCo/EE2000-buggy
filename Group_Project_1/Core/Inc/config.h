@@ -20,13 +20,6 @@
 #define ECHO_PIN GPIO_PIN_4
 #define ECHO_PORT GPIOA
 
-// Base speed out of 999
-#define STRAIGHT_SPEED 600
-
-// Change in speed between wheels will cause slight veer, larger difference = larger veer
-#define VEER_OUTSIDE_SPEED 650  // Faster wheel
-#define VEER_INSIDE_SPEED 550   // Slower wheel
-
 // Recovery turn speed if buggy gets lost
 #define RECOVERY_TURN_SPEED 500
 
