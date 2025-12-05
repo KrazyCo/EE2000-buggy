@@ -614,21 +614,21 @@ void display_logo(void) {
 		SSD1306_Puts("DMC", font, SSD1306_COLOR_WHITE);
 
 		SSD1306_UpdateScreen();
-		HAL_Delay(500);  // Display normal for 500ms
+		osDelay(500);  // Display normal for 500ms
 
 		// Pulse effect: Invert display
 		SSD1306_InvertDisplay(1);
 		SSD1306_UpdateScreen();
-		HAL_Delay(150);  // Inverted for 150ms
+		osDelay(150);  // Inverted for 150ms
 
 		// Return to normal
 		SSD1306_InvertDisplay(0);
 		SSD1306_UpdateScreen();
-		HAL_Delay(350);  // Normal again before next pulse
+		osDelay(350);  // Normal again before next pulse
 	}
 
 	// Short transition delay
-	HAL_Delay(200);
+	osDelay(200);
 
 	// Second: Switch to filled background with inverted text version
 	SSD1306_Clear();
@@ -658,10 +658,10 @@ void display_logo(void) {
 	SSD1306_UpdateScreen();
 
 	// Optional: Add a final pulse to the filled version
-	HAL_Delay(1000);  // Display filled version for 1 second
+	osDelay(1000);  // Display filled version for 1 second
 	SSD1306_InvertDisplay(1);
 	SSD1306_UpdateScreen();
-	HAL_Delay(150);
+	osDelay(150);
 	SSD1306_InvertDisplay(0);
 	SSD1306_UpdateScreen();
 }
@@ -695,10 +695,10 @@ void display_lap_times(void) {
 void blink_logo_led(uint8_t times) {
 	for (uint8_t i = 0; i < times; i++) {
 		HAL_GPIO_WritePin(LOGO_LED_GPIO_PORT, LOGO_LED_PIN, GPIO_PIN_SET);
-		HAL_Delay(500); // LED ON  500 ms
+		osDelay(500); // LED ON  500 ms
 
 		HAL_GPIO_WritePin(LOGO_LED_GPIO_PORT, LOGO_LED_PIN, GPIO_PIN_RESET);
-		HAL_Delay(250); // LED OFF 250 ms
+		osDelay(250); // LED OFF 250 ms
 	}
 }
 
