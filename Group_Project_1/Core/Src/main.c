@@ -469,9 +469,12 @@ void line_following_task(void *argument) {
 	/* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	for (;;) {
-		line_following_loop()
-		osDelay(1);
+		line_following_loop(&htim1);
+		osDelay(10);
 	}
+
+	// In case we accidentally exit from task loop
+	osThreadTerminate(NULL);
 	/* USER CODE END 5 */
 }
 
