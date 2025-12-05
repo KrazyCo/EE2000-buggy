@@ -54,7 +54,7 @@ SDA        |PB7          |Serial data line
 
 
 /* I2C address */
-#ifndef SSD1306_I2C_ADDR
+#ifndef SSD1306_I2C_ADDR		 0x3C
 #define SSD1306_I2C_ADDR         0x78
 //#define SSD1306_I2C_ADDR       0x7A
 #endif
@@ -62,7 +62,7 @@ SDA        |PB7          |Serial data line
 /* SSD1306 settings */
 /* SSD1306 width in pixels */
 #ifndef SSD1306_WIDTH
-#define SSD1306_WIDTH            128
+#define SSD1306_WIDTH            130
 #endif
 /* SSD1306 LCD height in pixels */
 #ifndef SSD1306_HEIGHT
