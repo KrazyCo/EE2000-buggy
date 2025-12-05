@@ -23,7 +23,7 @@ void line_following_init() {
 	lap_count = 0;
 }
 
-void line_following_loopk(TIM_HandleTypeDef *htim1) {
+void line_following_loop(TIM_HandleTypeDef *htim1) {
 	// Read initial IR sensor values
 	GPIO_PinState left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
 			LEFT_SENSOR_PIN);
