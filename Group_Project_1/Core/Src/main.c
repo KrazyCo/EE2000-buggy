@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -52,6 +53,10 @@ TIM_HandleTypeDef htim1;
 
 UART_HandleTypeDef huart2;
 
+/* Definitions for lineFollowing */
+osThreadId_t lineFollowingHandle;
+const osThreadAttr_t lineFollowing_attributes = { .name = "lineFollowing",
+		.stack_size = 128 * 4, .priority = (osPriority_t) osPriorityHigh, };
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -62,6 +67,8 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_I2C1_Init(void);
+void line_following_task(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -102,7 +109,6 @@ int main(void) {
 
 	/* USER CODE END SysInit */
 
-	// after HAL and I2C are initialized
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_USART2_UART_Init();
@@ -121,54 +127,49 @@ int main(void) {
 
 	/* USER CODE END 2 */
 
+	/* Init scheduler */
+	osKernelInitialize();
+
+	/* USER CODE BEGIN RTOS_MUTEX */
+	/* add mutexes, ... */
+	/* USER CODE END RTOS_MUTEX */
+
+	/* USER CODE BEGIN RTOS_SEMAPHORES */
+	/* add semaphores, ... */
+	/* USER CODE END RTOS_SEMAPHORES */
+
+	/* USER CODE BEGIN RTOS_TIMERS */
+	/* start timers, add new ones, ... */
+	/* USER CODE END RTOS_TIMERS */
+
+	/* USER CODE BEGIN RTOS_QUEUES */
+	/* add queues, ... */
+	/* USER CODE END RTOS_QUEUES */
+
+	/* Create the thread(s) */
+	/* creation of lineFollowing */
+	lineFollowingHandle = osThreadNew(line_following_task, NULL,
+			&lineFollowing_attributes);
+
+	/* USER CODE BEGIN RTOS_THREADS */
+	/* add threads, ... */
+	/* USER CODE END RTOS_THREADS */
+
+	/* USER CODE BEGIN RTOS_EVENTS */
+	/* add events, ... */
+	/* USER CODE END RTOS_EVENTS */
+
+	/* Start scheduler */
+	osKernelStart();
+
+	/* We should never get here as control is now taken by the scheduler */
+
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-
-		// Ultrasonic section
-//		HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
-//		__HAL_TIM_SET_COUNTER(&htim1, 0);
-//		while (__HAL_TIM_GET_COUNTER (&htim1) < 10)
-//			; // wait for 10 us
-//		HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
-//
-//		pMillis = HAL_GetTick();
-//		while (!(HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN))
-//				&& pMillis + 10 > HAL_GetTick())
-//			;
-//		val1 = __HAL_TIM_GET_COUNTER(&htim1);
-//
-//		pMillis = HAL_GetTick();
-//		while ((HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN))
-//				&& pMillis + 50 > HAL_GetTick())
-//			;
-//		val2 = __HAL_TIM_GET_COUNTER(&htim1);
-//
-//		distance = (val2 - val1) * 0.0343 / 2;
-//
-//		// Ignore unrealistic or noisy values
-//		if (distance > 1000 || distance == 0) {
-//			distance = last_distance;  // keep the previous valid distance
-//		} else {
-//			last_distance = distance;  // update the previous value
-//		}
-
-//		if (distance > 10) {
-		line_following_loop(&htim1);
-//		}
-
-		HAL_Delay(10);
-
-		// OLED
-//		SSD1306_GotoXY(20, 0);
-//		SSD1306_Puts("Distance:", &Font_11x18, 1);
-//		sprintf(string, "%3d cm", distance);
-//		SSD1306_GotoXY(20, 30);
-//		SSD1306_Puts(string, &Font_16x26, 1);
-//		SSD1306_UpdateScreen();  // refresh display
 
 	}
 
@@ -456,6 +457,43 @@ void turn_right(uint16_t speed) {
 }
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_line_following_task */
+/**
+ * @brief  Function implementing the lineFollowing thread.
+ * @param  argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_line_following_task */
+void line_following_task(void *argument) {
+	/* USER CODE BEGIN 5 */
+	/* Infinite loop */
+	for (;;) {
+		line_following_loop()
+		osDelay(1);
+	}
+	/* USER CODE END 5 */
+}
+
+/**
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM6 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	/* USER CODE BEGIN Callback 0 */
+
+	/* USER CODE END Callback 0 */
+	if (htim->Instance == TIM6) {
+		HAL_IncTick();
+	}
+	/* USER CODE BEGIN Callback 1 */
+
+	/* USER CODE END Callback 1 */
+}
 
 /**
  * @brief  This function is executed in case of error occurrence.
