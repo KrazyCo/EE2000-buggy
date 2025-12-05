@@ -51,19 +51,6 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-//  lap times (hardcoded)
-typedef struct {
-    uint32_t ms_time;
-    float speed_mps;
-} lap_t;
-
-lap_t laps[3] = {
-    {50800, 0.2f},
-    {52500, 0.3f},
-    {38000, 0.2f}
-};
-
-int lap_index = 0;
 
 // State flags
 uint8_t show_logo = 1;
@@ -74,6 +61,7 @@ uint8_t moving_forward = 0;
 uint32_t btn1_last = 0;
 uint32_t btn2_last = 0;
 uint32_t btn3_last = 0;
+uint32_t btn4_last = 0;
 
 #define LOGO_LED_GPIO_PORT   GPIOB
 #define LOGO_LED_PIN         GPIO_PIN_6   // D10
@@ -90,7 +78,14 @@ static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
+void delay(uint16_t time);
+void HCSR04_Read(void);
 
+void display_menu(void);
+void display_logo(void);
+void display_lap_times(void);
+void blink_logo_led(uint8_t times);
+void poll_buttons(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -208,12 +203,7 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   SSD1306_Init();
-
-  // Display initial message
-  SSD1306_Clear();
-  SSD1306_GotoXY(20, 20);
-  SSD1306_Puts("Press Button", &Font_7x10, 1);
-  SSD1306_UpdateScreen();
+  display_menu();
 
   /* USER CODE END 2 */
 
@@ -491,10 +481,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LD2_Pin|Trig_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, Motor_Output_Pin|Motor_OutputB5_Pin|LED_D10_PB6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -502,21 +492,27 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4;
+  /*Configure GPIO pins : Btn1_A0_Pin Btn2_A1_Pin Btn3_A2_Pin */
+  GPIO_InitStruct.Pin = Btn1_A0_Pin|Btn2_A1_Pin|Btn3_A2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD2_Pin PA9 */
-  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_9;
+  /*Configure GPIO pins : LD2_Pin Trig_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin|Trig_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB3 PB5 PB6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_6;
+  /*Configure GPIO pin : Btn4_A3_Pin */
+  GPIO_InitStruct.Pin = Btn4_A3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(Btn4_A3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : Motor_Output_Pin Motor_OutputB5_Pin LED_D10_PB6_Pin */
+  GPIO_InitStruct.Pin = Motor_Output_Pin|Motor_OutputB5_Pin|LED_D10_PB6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -528,31 +524,26 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void move_forward(uint16_t speed)
+void display_menu(void)
 {
-    // Enable both motors
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Motor 1 Enable
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_SET);  // Motor 2 Enable
+    SSD1306_Clear();
 
-    // Set direction pins for forward movement
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);  // Left motor forward
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);  // Right motor forward
+    SSD1306_GotoXY(5, 0);
+    SSD1306_Puts("B1: Lap Times", &Font_7x10, 1);
 
-    // Set PWM speed
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, speed);
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, speed);
+    SSD1306_GotoXY(5, 12);
+    SSD1306_Puts("B2: Logo", &Font_7x10, 1);
+
+    SSD1306_GotoXY(5, 24);
+    SSD1306_Puts("B3: Line Follow", &Font_7x10, 1);
+
+    SSD1306_GotoXY(5, 36);
+    SSD1306_Puts("B4: Main Menu", &Font_7x10, 1);
+
+    SSD1306_UpdateScreen();
 }
 
-void stop_motors(void)
-{
-    // Stop PWM
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
 
-    // Disable motors
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_9, GPIO_PIN_RESET);
-}
 
 /* Helper: display company logo */
 void display_logo(void)
@@ -649,28 +640,36 @@ void display_lap_times(void)
     SSD1306_Clear();
     char buf[32];
 
-    for(int i = 0; i < 3; i++)
-    {
-        // Convert ms to seconds * 10 (to keep 1 decimal place)
-        uint32_t time_x10 = (laps[i].ms_time * 10) / 1000; // e.g., 50,000 ms -> 500 -> 50.0 s
-        uint32_t sec = time_x10 / 10;
-        uint32_t dec = time_x10 % 10;
+    // ---------- LAP 1 ----------
+    snprintf(buf, sizeof(buf), "Lap1: 12.3 sec");     // <-- change here
+    SSD1306_GotoXY(5, 0);
+    SSD1306_Puts(buf, &Font_7x10, 1);
 
-        uint32_t speed_x100 = laps[i].speed_mps * 100;    // e.g., 0.2 -> 20
-        uint32_t spd_int = speed_x100 / 100;
-        uint32_t spd_dec = speed_x100 % 100;
+    snprintf(buf, sizeof(buf), "Avg Speed:0.25m/s");  // <-- and here
+    SSD1306_GotoXY(5, 10);
+    SSD1306_Puts(buf, &Font_7x10, 1);
 
-        snprintf(buf, sizeof(buf), "Lap%d:%lu.%lu sec", i+1, sec, dec);
-        SSD1306_GotoXY(5, i*20);
-        SSD1306_Puts(buf, &Font_7x10, 1);
+    // ---------- LAP 2 ----------
+    snprintf(buf, sizeof(buf), "Lap2: 15.8 sec");     // <-- change here
+    SSD1306_GotoXY(5, 20);
+    SSD1306_Puts(buf, &Font_7x10, 1);
 
-        snprintf(buf, sizeof(buf), "Avg Speed:%lu.%02lum/s", spd_int, spd_dec);
-        SSD1306_GotoXY(5, i*20 + 10);
-        SSD1306_Puts(buf, &Font_7x10, 1);
-    }
+    snprintf(buf, sizeof(buf), "Avg Speed:0.30m/s");  // <-- and here
+    SSD1306_GotoXY(5, 30);
+    SSD1306_Puts(buf, &Font_7x10, 1);
+
+    // ---------- LAP 3 ----------
+    snprintf(buf, sizeof(buf), "Lap3: 9.6 sec");      // <-- change here
+    SSD1306_GotoXY(5, 40);
+    SSD1306_Puts(buf, &Font_7x10, 1);
+
+    snprintf(buf, sizeof(buf), "Avg Speed:0.40m/s");  // <-- and here
+    SSD1306_GotoXY(5, 50);
+    SSD1306_Puts(buf, &Font_7x10, 1);
 
     SSD1306_UpdateScreen();
 }
+
 
 void blink_logo_led(uint8_t times)
 {
@@ -689,24 +688,21 @@ void poll_buttons(void)
     static uint8_t btn1_prev = 0;
     static uint8_t btn2_prev = 0;
     static uint8_t btn3_prev = 0;
+    static uint8_t btn4_prev = 0;
     uint32_t t = HAL_GetTick();
 
     uint8_t btn1_now = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
     uint8_t btn2_now = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1);
     uint8_t btn3_now = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4);
+    uint8_t btn4_now = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
 
     // Button 1: Display company logo
     if(btn1_now == GPIO_PIN_SET && btn1_prev == 0 && (t - btn1_last > DEBOUNCE_MS))
     {
         display_logo();                 // OLED logo animation
-        blink_logo_led(10);              // <-- D10 LED blink (4 times @ 500 ms on/off)
-
+        blink_logo_led(8);              // <-- D10 LED blink (4 times @ 500 ms on/off)
         btn1_last = t;
 
-        if(moving_forward) {
-            stop_motors();
-            moving_forward = 0;
-        }
     }
     btn1_prev = btn1_now;
 
@@ -717,7 +713,7 @@ void poll_buttons(void)
         display_lap_times();
         btn2_last = t;
 
-        if(moving_forward) { stop_motors(); moving_forward = 0; }
+
     }
     btn2_prev = btn2_now;
 
@@ -725,13 +721,22 @@ void poll_buttons(void)
     if(btn3_now == GPIO_PIN_SET && btn3_prev == 0 && (t - btn3_last > DEBOUNCE_MS))
     {
         display_logo();
-        move_forward(500); // set speed (0-999 for TIM3 PWM)
+
         moving_forward = 1;
 
         btn3_last = t;
     }
     btn3_prev = btn3_now;
+
+    // Button 4: Return to main menu
+    if(btn4_now == GPIO_PIN_SET && btn4_prev == 0 && (t - btn4_last > DEBOUNCE_MS))
+    {
+        display_menu();   // redraw the selection screen
+        btn4_last = t;
+    }
+    btn4_prev = btn4_now;
 }
+
 
 
 
