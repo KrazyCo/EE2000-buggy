@@ -51,7 +51,7 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-// Demo lap times (hardcoded)
+//  lap times (hardcoded)
 typedef struct {
     uint32_t ms_time;
     float speed_mps;
@@ -107,11 +107,6 @@ uint32_t Difference = 0;
 uint8_t Is_First_Captured = 0;
 uint16_t Distance  = 0;
 uint16_t Last_Valid_Distance = 0;
-
-// 3 Second stop for object
-uint8_t freezeActive = 0;
-uint32_t freezeStartTime = 0;
-
 
 #define TRIG_PIN GPIO_PIN_9
 #define TRIG_PORT GPIOA
@@ -685,7 +680,7 @@ void blink_logo_led(uint8_t times)
         HAL_Delay(500); // LED ON  500 ms
 
         HAL_GPIO_WritePin(LOGO_LED_GPIO_PORT, LOGO_LED_PIN, GPIO_PIN_RESET);
-        HAL_Delay(500); // LED OFF 500 ms
+        HAL_Delay(250); // LED OFF 250 ms
     }
 }
 
@@ -704,7 +699,7 @@ void poll_buttons(void)
     if(btn1_now == GPIO_PIN_SET && btn1_prev == 0 && (t - btn1_last > DEBOUNCE_MS))
     {
         display_logo();                 // OLED logo animation
-        blink_logo_led(4);              // <-- D10 LED blink (4 times @ 500 ms on/off)
+        blink_logo_led(10);              // <-- D10 LED blink (4 times @ 500 ms on/off)
 
         btn1_last = t;
 
