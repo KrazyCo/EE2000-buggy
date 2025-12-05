@@ -117,7 +117,7 @@ int main(void) {
 //	static int last_turn_direction = 0;
 
 	// Oled Display control
-	SSD1306_Init();
+//	SSD1306_Init();
 
 	/* USER CODE END 2 */
 
@@ -129,46 +129,46 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 
 		// Ultrasonic section
-		HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
-		__HAL_TIM_SET_COUNTER(&htim1, 0);
-		while (__HAL_TIM_GET_COUNTER (&htim1) < 10)
-			; // wait for 10 us
-		HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+//		HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
+//		__HAL_TIM_SET_COUNTER(&htim1, 0);
+//		while (__HAL_TIM_GET_COUNTER (&htim1) < 10)
+//			; // wait for 10 us
+//		HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+//
+//		pMillis = HAL_GetTick();
+//		while (!(HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN))
+//				&& pMillis + 10 > HAL_GetTick())
+//			;
+//		val1 = __HAL_TIM_GET_COUNTER(&htim1);
+//
+//		pMillis = HAL_GetTick();
+//		while ((HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN))
+//				&& pMillis + 50 > HAL_GetTick())
+//			;
+//		val2 = __HAL_TIM_GET_COUNTER(&htim1);
+//
+//		distance = (val2 - val1) * 0.0343 / 2;
+//
+//		// Ignore unrealistic or noisy values
+//		if (distance > 1000 || distance == 0) {
+//			distance = last_distance;  // keep the previous valid distance
+//		} else {
+//			last_distance = distance;  // update the previous value
+//		}
 
-		pMillis = HAL_GetTick();
-		while (!(HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN))
-				&& pMillis + 10 > HAL_GetTick())
-			;
-		val1 = __HAL_TIM_GET_COUNTER(&htim1);
-
-		pMillis = HAL_GetTick();
-		while ((HAL_GPIO_ReadPin(ECHO_PORT, ECHO_PIN))
-				&& pMillis + 50 > HAL_GetTick())
-			;
-		val2 = __HAL_TIM_GET_COUNTER(&htim1);
-
-		distance = (val2 - val1) * 0.0343 / 2;
-
-		// Ignore unrealistic or noisy values
-		if (distance > 1000 || distance == 0) {
-			distance = last_distance;  // keep the previous valid distance
-		} else {
-			last_distance = distance;  // update the previous value
-		}
-
-		if (distance > 10) {
-			line_following_loop(&htim1);
-		}
+//		if (distance > 10) {
+		line_following_loop(&htim1);
+//		}
 
 		HAL_Delay(10);
 
 		// OLED
-		SSD1306_GotoXY(20, 0);
-		SSD1306_Puts("Distance:", &Font_11x18, 1);
-		sprintf(string, "%3d cm", distance);
-		SSD1306_GotoXY(20, 30);
-		SSD1306_Puts(string, &Font_16x26, 1);
-		SSD1306_UpdateScreen();  // refresh display
+//		SSD1306_GotoXY(20, 0);
+//		SSD1306_Puts("Distance:", &Font_11x18, 1);
+//		sprintf(string, "%3d cm", distance);
+//		SSD1306_GotoXY(20, 30);
+//		SSD1306_Puts(string, &Font_16x26, 1);
+//		SSD1306_UpdateScreen();  // refresh display
 
 	}
 

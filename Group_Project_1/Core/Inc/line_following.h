@@ -9,10 +9,10 @@
 #define INC_LINE_FOLLOWING_C_
 
 #define left_slight_veer_step 10
-#define left_strong_veer_step 40
+#define left_strong_veer_step 25
 
 #define right_slight_veer_step 10
-#define right_strong_veer_step 40
+#define right_strong_veer_step 25
 
 enum Direction {
 	FORWARD, LEFT, RIGHT

@@ -12,8 +12,15 @@
 
 //TIM_HandleTypeDef htim1; // defined in main.c
 
-#define FORWARDS_LEFT_MOTOR_SPEED 600
-#define FORWARDS_RIGHT_MOTOR_SPEED 600
+#define FORWARDS_LEFT_MOTOR_SPEED 400
+#define FORWARDS_RIGHT_MOTOR_SPEED 400
+
+#define LEFT_SENSOR_PIN   GPIO_PIN_4
+#define LEFT_SENSOR_PORT  GPIOA
+#define RIGHT_SENSOR_PIN  GPIO_PIN_1
+#define RIGHT_SENSOR_PORT GPIOC
+#define MIDDLE_SENSOR_PIN  GPIO_PIN_0
+#define MIDDLE_SENSOR_PORT GPIOB
 
 void move_forwards(TIM_HandleTypeDef *htim1);
 void veer_left(TIM_HandleTypeDef *htim1, uint16_t veer_amount);

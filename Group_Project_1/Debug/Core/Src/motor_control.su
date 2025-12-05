@@ -1,4 +1,4 @@
 ../Core/Src/motor_control.c:11:6:move_forwards	16	static
 ../Core/Src/motor_control.c:18:6:veer_left	16	static
-../Core/Src/motor_control.c:25:6:veer_right	16	static
-../Core/Src/motor_control.c:32:6:stop_motors	16	static
+../Core/Src/motor_control.c:28:6:veer_right	16	static
+../Core/Src/motor_control.c:38:6:stop_motors	16	static

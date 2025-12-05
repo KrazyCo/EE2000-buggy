@@ -16,6 +16,9 @@ void move_forwards(TIM_HandleTypeDef *htim1) {
 }
 
 void veer_left(TIM_HandleTypeDef *htim1, uint16_t veer_amount) {
+	if (veer_amount == FORWARDS_LEFT_MOTOR_SPEED) {
+		veer_amount = FORWARDS_LEFT_MOTOR_SPEED;
+	}
 	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_1, FORWARDS_LEFT_MOTOR_SPEED - veer_amount); // Left motor (slow)
 	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, FORWARDS_RIGHT_MOTOR_SPEED); // Right motor (fast)
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Left DIR = forward
@@ -23,6 +26,9 @@ void veer_left(TIM_HandleTypeDef *htim1, uint16_t veer_amount) {
 }
 
 void veer_right(TIM_HandleTypeDef *htim1, uint16_t veer_amount) {
+	if (veer_amount == FORWARDS_RIGHT_MOTOR_SPEED) {
+			veer_amount = FORWARDS_RIGHT_MOTOR_SPEED;
+		}
 	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_1, FORWARDS_LEFT_MOTOR_SPEED); // Left motor (fast)
 	__HAL_TIM_SET_COMPARE(htim1, TIM_CHANNEL_2, FORWARDS_RIGHT_MOTOR_SPEED - veer_amount); // Right motor (slow)
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET); // Left DIR = forward
