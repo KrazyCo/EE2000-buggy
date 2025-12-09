@@ -10,6 +10,8 @@
 #include "config.h"
 #include "main.h"
 #include "ssd1306.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 enum Direction last_turn_direction;
 int left_turn_amount;
@@ -23,8 +25,9 @@ void line_following_init() {
 	lap_count = 0;
 }
 
-void line_following_loop(TIM_HandleTypeDef *htim1) {
+void line_following_loop(TIM_HandleTypeDef *htim) {
 	// Read initial IR sensor values
+	taskENTER_CRITICAL(); // disable interrupts
 	GPIO_PinState left_val = HAL_GPIO_ReadPin(LEFT_SENSOR_PORT,
 			LEFT_SENSOR_PIN);
 	GPIO_PinState right_val = HAL_GPIO_ReadPin(RIGHT_SENSOR_PORT,
@@ -34,7 +37,7 @@ void line_following_loop(TIM_HandleTypeDef *htim1) {
 
 	if (left_val == GPIO_PIN_SET && right_val == GPIO_PIN_SET && middle_val == GPIO_PIN_SET) {
 		// Black Black Black - buggy on track so move forwards
-		move_forwards(htim1);
+		move_forwards(htim);
 		last_turn_direction = FORWARD;
 		left_turn_amount = 0;
 		right_turn_amount = 0;
@@ -44,7 +47,7 @@ void line_following_loop(TIM_HandleTypeDef *htim1) {
 		if (right_turn_amount > FORWARDS_RIGHT_MOTOR_SPEED) {
 			right_turn_amount = FORWARDS_RIGHT_MOTOR_SPEED;
 		}
-		veer_right(htim1, right_turn_amount);
+		veer_right(htim, right_turn_amount);
 		last_turn_direction = RIGHT;
 	} else if (left_val == GPIO_PIN_RESET && right_val == GPIO_PIN_SET && middle_val == GPIO_PIN_RESET) {
 		// White White Black - buggy may be veering left strongly or finished a lap
@@ -53,7 +56,7 @@ void line_following_loop(TIM_HandleTypeDef *htim1) {
 			if (right_turn_amount > FORWARDS_RIGHT_MOTOR_SPEED) {
 				right_turn_amount = FORWARDS_RIGHT_MOTOR_SPEED;
 			}
-			veer_right(htim1, right_turn_amount);
+			veer_right(htim, right_turn_amount);
 		} else if (last_turn_direction == FORWARD) {
 			lap_passed();
 		}
@@ -66,7 +69,7 @@ void line_following_loop(TIM_HandleTypeDef *htim1) {
 		if (left_turn_amount > FORWARDS_LEFT_MOTOR_SPEED) {
 			left_turn_amount = FORWARDS_LEFT_MOTOR_SPEED;
 		}
-		veer_left(htim1, left_turn_amount);
+		veer_left(htim, left_turn_amount);
 		last_turn_direction = LEFT;
 	} else if (left_val == GPIO_PIN_SET && right_val == GPIO_PIN_RESET && middle_val == GPIO_PIN_RESET) {
 		// Black White White - buggy may be veering left strongly or finished a lap
@@ -75,11 +78,12 @@ void line_following_loop(TIM_HandleTypeDef *htim1) {
 			if (left_turn_amount > FORWARDS_LEFT_MOTOR_SPEED) {
 				left_turn_amount = FORWARDS_LEFT_MOTOR_SPEED;
 			}
-			veer_left(htim1, left_turn_amount);
+			veer_left(htim, left_turn_amount);
 		} else if (last_turn_direction == FORWARD) {
 			lap_passed();
 		}
 	}
+	taskEXIT_CRITICAL(); // enable interrupts
 
 }
 

@@ -29,5 +29,4 @@ Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
 Middlewares/Third_Party/FreeRTOS/Source \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM0 \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
-Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates \
 
