@@ -103,7 +103,7 @@ void turn_right(uint16_t speed);
 #define OLED_SDA_D14_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+extern uint8_t moving_forward;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
