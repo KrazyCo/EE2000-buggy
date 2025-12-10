@@ -77,14 +77,14 @@ void turn_right(uint16_t speed);
 #define LD2_GPIO_Port GPIOA
 #define Btn4_A3_Pin GPIO_PIN_0
 #define Btn4_A3_GPIO_Port GPIOB
+#define Speakers_Pin GPIO_PIN_1
+#define Speakers_GPIO_Port GPIOB
 #define Middle_sensor_Pin GPIO_PIN_10
 #define Middle_sensor_GPIO_Port GPIOB
 #define Echo_Pin GPIO_PIN_8
 #define Echo_GPIO_Port GPIOA
 #define Trig_Pin GPIO_PIN_9
 #define Trig_GPIO_Port GPIOA
-#define Right_sensor_Pin GPIO_PIN_10
-#define Right_sensor_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
@@ -106,6 +106,8 @@ void turn_right(uint16_t speed);
 extern uint8_t moving_forward;
 extern bool object_in_path;
 extern bool lap_display;
+extern bool request_playNote;
+extern bool request_playNote2;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

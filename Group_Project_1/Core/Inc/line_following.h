@@ -30,6 +30,7 @@ enum Direction {
 };
 
 extern int lap_count;
+extern float last_three_lap_times[3];
 
 void line_following_init();
 void line_following_loop(TIM_HandleTypeDef *htim);

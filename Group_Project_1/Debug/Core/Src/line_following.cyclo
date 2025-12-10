@@ -1,3 +1,4 @@
-../Core/Src/line_following.c:24:6:line_following_init	1
-../Core/Src/line_following.c:31:6:line_following_loop	34
-../Core/Src/line_following.c:132:6:lap_passed	2
+../Core/Src/line_following.c:30:6:line_following_init	1
+../Core/Src/line_following.c:37:6:line_following_loop	35
+../Core/Src/line_following.c:142:6:lap_passed	2
+../Core/Src/line_following.c:154:6:save_lap_time	1

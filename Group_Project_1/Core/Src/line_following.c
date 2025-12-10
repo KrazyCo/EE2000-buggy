@@ -14,12 +14,18 @@
 #include "task.h"
 #include "stdbool.h"
 
+void save_lap_time(uint32_t lap_time);
+
 enum Direction last_turn_direction;
 int left_turn_amount;
 int right_turn_amount;
 int lap_count;
 bool lap_finished = true;
 bool currently_moving = false;
+uint32_t lap_start_tick;
+volatile uint32_t lap_ticks_stopped;
+bool currently_in_lap = false;
+float last_three_lap_times[3] = {0};
 
 void line_following_init() {
 	last_turn_direction = FORWARD;
@@ -46,6 +52,10 @@ void line_following_loop(TIM_HandleTypeDef *htim) {
 	if (!currently_moving) {
 		move_forwards(htim);
 		currently_moving = true;
+	}
+	if (!currently_in_lap) {
+		lap_start_tick = HAL_GetTick();
+		currently_in_lap = true;
 	}
 	// Read initial IR sensor values
 	taskENTER_CRITICAL();// disable interrupts
@@ -131,8 +141,18 @@ void line_following_loop(TIM_HandleTypeDef *htim) {
 
 void lap_passed() {
 	if (!lap_finished) {
+		int currentTick = HAL_GetTick();
+		save_lap_time(currentTick - lap_start_tick);
+		lap_start_tick = currentTick;
+		request_playNote = true;
 		lap_finished = true;
 		lap_count += 1;
 		lap_display = true;
 	}
+}
+
+void save_lap_time(uint32_t lap_time) {
+	last_three_lap_times[2] = last_three_lap_times[1];
+	last_three_lap_times[1] = last_three_lap_times[0];
+	last_three_lap_times[0] = (float)lap_time/1000.0;
 }
