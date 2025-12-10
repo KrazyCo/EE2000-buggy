@@ -62,11 +62,20 @@ osThreadId_t buttonPollHandle;
 const osThreadAttr_t buttonPoll_attributes =
 		{ .name = "buttonPoll", .stack_size = 256 * 4, .priority =
 				(osPriority_t) osPriorityBelowNormal, };
+/* Definitions for ultrasonicLoop */
+osThreadId_t ultrasonicLoopHandle;
+const osThreadAttr_t ultrasonicLoop_attributes = { .name = "ultrasonicLoop",
+		.stack_size = 128 * 4, .priority = (osPriority_t) osPriorityLow, };
+/* Definitions for sponsors */
+osThreadId_t sponsorsHandle;
+const osThreadAttr_t sponsors_attributes = { .name = "sponsors", .stack_size =
+		128 * 4, .priority = (osPriority_t) osPriorityLow, };
 /* USER CODE BEGIN PV */
 
 // State flags
 uint8_t show_logo = 1;
 uint8_t moving_forward = 0;
+bool object_in_path = false;
 
 // Button debounce
 #define DEBOUNCE_MS 200
@@ -91,6 +100,8 @@ static void MX_TIM1_Init(void);
 static void MX_TIM3_Init(void);
 void lineFollowingTask(void *argument);
 void buttonPollTask(void *argument);
+void ultrasonicTask(void *argument);
+void sponsorsTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 void delay(uint16_t time);
@@ -117,6 +128,10 @@ uint32_t Difference = 0;
 uint8_t Is_First_Captured = 0;
 uint16_t Distance = 0;
 uint16_t Last_Valid_Distance = 0;
+uint8_t sponsor_index = 0;
+bool is_sponsor_loop = false;
+int sponsor_loop_index = 0;
+bool lap_display = false;
 
 #define TRIG_PIN GPIO_PIN_9
 #define TRIG_PORT GPIOA
@@ -148,16 +163,16 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 				Difference = (0xffff - IC_Val1) + IC_Val2;
 			}
 
-			uint16_t newDistance = Difference * 0.034 / 2;
+			Distance = Difference * 0.034 / 2;
 
-			if (newDistance <= 50) {
-				// Accept the reading
-				Distance = newDistance;
-				Last_Valid_Distance = newDistance;
-			} else {
-				// Ignore bad values, keep last good one
-				Distance = Last_Valid_Distance;
-			}
+//			if (newDistance <= 50) {
+//				// Accept the reading
+//				Distance = newDistance;
+//				Last_Valid_Distance = newDistance;
+//			} else {
+//				// Ignore bad values, keep last good one
+//				Distance = Last_Valid_Distance;
+//			}
 
 			Is_First_Captured = 0; // set it back to false
 
@@ -170,11 +185,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 }
 
 void HCSR04_Read(void) {
+	taskENTER_CRITICAL(); // disable interrupts for timing
 	HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET); // pull the TRIG pin HIGH
 	delay(10);  // wait for 10 us
 	HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET); // pull the TRIG pin low
 
 	__HAL_TIM_ENABLE_IT(&htim1, TIM_IT_CC1);
+	taskEXIT_CRITICAL(); // enable interrupts
 }
 
 char string[20];
@@ -215,6 +232,8 @@ int main(void) {
 	/* USER CODE BEGIN 2 */
 	SSD1306_Init();
 	display_menu();
+	HAL_TIM_Base_Start(&htim1);
+	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 
@@ -247,6 +266,13 @@ int main(void) {
 	/* creation of buttonPoll */
 	buttonPollHandle = osThreadNew(buttonPollTask, NULL,
 			&buttonPoll_attributes);
+
+	/* creation of ultrasonicLoop */
+	ultrasonicLoopHandle = osThreadNew(ultrasonicTask, NULL,
+			&ultrasonicLoop_attributes);
+
+	/* creation of sponsors */
+	sponsorsHandle = osThreadNew(sponsorsTask, NULL, &sponsors_attributes);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -520,8 +546,7 @@ static void MX_GPIO_Init(void) {
 
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOB,
-			Motor_Output_Pin | Motor_OutputB5_Pin | LED_D10_PB6_Pin,
-			GPIO_PIN_RESET);
+	Motor_Output_Pin | Motor_OutputB5_Pin | LED_D10_PB6_Pin, GPIO_PIN_RESET);
 
 	/*Configure GPIO pin : B1_Pin */
 	GPIO_InitStruct.Pin = B1_Pin;
@@ -578,13 +603,13 @@ void display_menu(void) {
 	SSD1306_Clear();
 
 	SSD1306_GotoXY(5, 0);
-	SSD1306_Puts("B1: Lap Times", &Font_7x10, 1);
+	SSD1306_Puts("B1: Sponsors", &Font_7x10, 1);
 
 	SSD1306_GotoXY(5, 12);
-	SSD1306_Puts("B2: Logo", &Font_7x10, 1);
+	SSD1306_Puts("B2: Lap Times", &Font_7x10, 1);
 
 	SSD1306_GotoXY(5, 24);
-	SSD1306_Puts("B3: Line Follow", &Font_7x10, 1);
+	SSD1306_Puts("B3: Line Following", &Font_7x10, 1);
 
 	SSD1306_GotoXY(5, 36);
 	SSD1306_Puts("B4: Main Menu", &Font_7x10, 1);
@@ -592,103 +617,82 @@ void display_menu(void) {
 	SSD1306_UpdateScreen();
 }
 
-/* Helper: display company logo */
+const char *sponsors[3] = { "DMC Motors", "Libyan Plutonium",
+		"BiffCo Enterprise" };
+
+// DMC logo
+void draw_dmc_logo(void) {
+	// Circle
+	SSD1306_DrawCircle(64, 24, 14, SSD1306_COLOR_WHITE);
+
+	// Inverted DMC text (white block, black text)
+	SSD1306_DrawFilledRectangle(45, 18, 38, 12, SSD1306_COLOR_WHITE);
+
+	SSD1306_GotoXY(54, 20);
+	SSD1306_Puts("DMC", &Font_7x10, SSD1306_COLOR_BLACK);
+}
+
+// Flux Capacitor Graphic
+void draw_flux_capacitor(void) {
+	int cx = 64;
+	int cy = 22;
+	int radius = 5;
+
+	int topX = cx;
+	int topY = cy - 14;
+
+	int leftX = cx - 18;
+	int leftY = cy + 10;
+
+	int rightX = cx + 18;
+	int rightY = cy + 10;
+
+	SSD1306_DrawCircle(topX, topY, radius, SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(leftX, leftY, radius, SSD1306_COLOR_WHITE);
+	SSD1306_DrawCircle(rightX, rightY, radius, SSD1306_COLOR_WHITE);
+
+	SSD1306_DrawLine(topX, topY + radius, cx, cy, SSD1306_COLOR_WHITE);
+	SSD1306_DrawLine(leftX + radius, leftY - radius, cx, cy,
+			SSD1306_COLOR_WHITE);
+	SSD1306_DrawLine(rightX - radius, rightY - radius, cx, cy,
+			SSD1306_COLOR_WHITE);
+}
+
+void draw_biffco_logo(void) {
+
+	// Outer thick rectangle (smaller height: 6 → 30)
+	SSD1306_DrawRectangle(34, 6, 60, 30, SSD1306_COLOR_WHITE);
+	SSD1306_DrawRectangle(36, 8, 56, 26, SSD1306_COLOR_WHITE);
+
+	// Diagonal slash (adjusted to fit inside shorter box)
+	SSD1306_DrawLine(34, 6, 94, 30, SSD1306_COLOR_WHITE);
+	SSD1306_DrawLine(36, 8, 92, 28, SSD1306_COLOR_WHITE);
+
+	// Big center B (moved upward so it stays inside box)
+	SSD1306_GotoXY(58, 12);
+	SSD1306_Puts("B", &Font_11x18, SSD1306_COLOR_WHITE);
+}
+
 void display_logo(void) {
-	for (int pulse_count = 0; pulse_count < 2; pulse_count++) {
-		taskENTER_CRITICAL(); // disable interrupts
-		// Display normal framed logo
-		SSD1306_Clear();
-
-		const char *logo = "DMC";
-		FontDef_t *font = &Font_11x18;
-
-		int textWidth = 3 * font->FontWidth;
-		int textHeight = font->FontHeight;
-
-		int centerX = 64;
-		int centerY = 32;
-		int textX = centerX - (textWidth / 2);
-		int textY = centerY - (textHeight / 2);
-
-		// Draw a rectangle frame around the screen
-		int framePadding = 4;
-		SSD1306_DrawRectangle(framePadding, framePadding,
-		SSD1306_WIDTH - 2 * framePadding,
-		SSD1306_HEIGHT - 2 * framePadding, SSD1306_COLOR_WHITE);
-
-		// Draw diagonal lines from corners
-		SSD1306_DrawLine(framePadding, framePadding, textX, textY - 2,
-				SSD1306_COLOR_WHITE);
-		SSD1306_DrawLine(SSD1306_WIDTH - framePadding, framePadding,
-				textX + textWidth, textY - 2, SSD1306_COLOR_WHITE);
-
-		// Draw text with circle
-		SSD1306_DrawCircle(centerX, centerY, 22, SSD1306_COLOR_WHITE);
-		SSD1306_GotoXY(textX, textY);
-		SSD1306_Puts("DMC", font, SSD1306_COLOR_WHITE);
-
-		SSD1306_UpdateScreen();
-		taskEXIT_CRITICAL(); // enable interrupts
-		osDelay(500);  // Display normal for 500ms
-
-		// Pulse effect: Invert display
-		taskENTER_CRITICAL();// disable interrupts
-		SSD1306_InvertDisplay(1);
-		SSD1306_UpdateScreen();
-		taskEXIT_CRITICAL(); // enable interrupts
-		osDelay(150);  // Inverted for 150ms
-
-		// Return to normal
-		taskENTER_CRITICAL();// disable interrupts
-		SSD1306_InvertDisplay(0);
-		SSD1306_UpdateScreen();
-		taskEXIT_CRITICAL(); // enable interrupts
-		osDelay(350);  // Normal again before next pulse
-	}
-
-	// Short transition delay
-	osDelay(200);
-
-	// Second: Switch to filled background with inverted text version
-	taskENTER_CRITICAL();// disable interrupts
 	SSD1306_Clear();
 
-	const char *logo2 = "DMC";
-	FontDef_t *font2 = &Font_11x18;
+	// --- Draw correct logo based on sponsor ---
+	if (sponsor_index == 0) {
+		draw_dmc_logo();
+	} else if (sponsor_index == 1) {
+		draw_flux_capacitor();
+	} else if (sponsor_index == 2) {
+		draw_biffco_logo();
+	}
 
-	int textWidth2 = 3 * font2->FontWidth;
-	int textHeight2 = font2->FontHeight;
+	SSD1306_GotoXY(10, 40);
+	SSD1306_Puts("Sponsored by:", &Font_7x10, SSD1306_COLOR_WHITE);
 
-	int centerX2 = 64;
-	int centerY2 = 32;
-	int textX2 = centerX2 - (textWidth2 / 2);
-	int textY2 = centerY2 - (textHeight2 / 2);
-	int radius = 24;
-
-	// Draw filled circle background
-	SSD1306_DrawFilledCircle(centerX2, centerY2, radius, SSD1306_COLOR_WHITE);
-
-	// Draw text in black (inverted) inside the white circle
-	SSD1306_GotoXY(textX2, textY2);
-	SSD1306_Puts("DMC", font2, SSD1306_COLOR_BLACK);
-
-	// Optional: Add a thin outline circle for definition
-	SSD1306_DrawCircle(centerX2, centerY2, radius, SSD1306_COLOR_BLACK);
+	// Sponsor name (bottom)
+	SSD1306_GotoXY(10, 52);
+	SSD1306_Puts(sponsors[sponsor_index], &Font_7x10, SSD1306_COLOR_WHITE);
 
 	SSD1306_UpdateScreen();
-	taskEXIT_CRITICAL(); // enable interrupts
-
-	// Optional: Add a final pulse to the filled version
-	osDelay(1000);  // Display filled version for 1 second
-	taskENTER_CRITICAL(); // disable interrupts
-	SSD1306_InvertDisplay(1);
-	SSD1306_UpdateScreen();
-	taskEXIT_CRITICAL(); // enable interrupts
-	osDelay(150);
-	taskENTER_CRITICAL(); // disable interrupts
-	SSD1306_InvertDisplay(0);
-	SSD1306_UpdateScreen();
-	taskEXIT_CRITICAL(); // enable interrupts
 }
 
 void display_lap_times(void) {
@@ -750,16 +754,22 @@ void poll_buttons(void) {
 	// Button 1: Display company logo
 	if (btn1_now == GPIO_PIN_SET && btn1_prev == 0
 			&& (t - btn1_last > DEBOUNCE_MS)) {
-		display_logo();                 // OLED logo animation
-		blink_logo_led(8);        // <-- D10 LED blink (4 times @ 500 ms on/off)
-		btn1_last = t;
 
+		is_sponsor_loop = false; // we dont want to loop through
+		// move to next sponsor
+		sponsor_index = (sponsor_index + 1) % 3;
+		display_logo();
+
+		blink_logo_led(2);  // shorter blink for sponsor switch
+		btn1_last = t;
 	}
+
 	btn1_prev = btn1_now;
 
 	// Button 2: Display lap times
 	if (btn2_now == GPIO_PIN_SET && btn2_prev == 0
 			&& (t - btn2_last > DEBOUNCE_MS)) {
+		is_sponsor_loop = false;
 		display_lap_times();
 		btn2_last = t;
 
@@ -769,15 +779,14 @@ void poll_buttons(void) {
 	// Button 3: Display logo and move forward
 	if (btn3_now == GPIO_PIN_SET && btn3_prev == 0
 			&& (t - btn3_last > DEBOUNCE_MS)) {
-		if (moving_forward)
-		{
+		if (moving_forward) {
 			moving_forward = 0;
 		} else {
 			moving_forward = 1;
 		}
 //		moving_forward = moving_forward==1 ? 0 : 1;
 
-		display_logo();
+		is_sponsor_loop = true;
 
 		btn3_last = t;
 	}
@@ -786,6 +795,7 @@ void poll_buttons(void) {
 	// Button 4: Return to main menu
 	if (btn4_now == GPIO_PIN_SET && btn4_prev == 0
 			&& (t - btn4_last > DEBOUNCE_MS)) {
+		is_sponsor_loop = false;
 		display_menu();   // redraw the selection screen
 		btn4_last = t;
 	}
@@ -826,6 +836,58 @@ void buttonPollTask(void *argument) {
 		osDelay(50);
 	}
 	/* USER CODE END buttonPollTask */
+}
+
+/* USER CODE BEGIN Header_ultrasonicTask */
+/**
+ * @brief Function implementing the ultrasonicLoop thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_ultrasonicTask */
+void ultrasonicTask(void *argument) {
+	/* USER CODE BEGIN ultrasonicTask */
+	/* Infinite loop */
+	for (;;) {
+		HCSR04_Read();
+		osDelay(200);
+		if (Distance < 15) {
+			object_in_path = true;
+		} else {
+			object_in_path = false;
+		}
+	}
+	/* USER CODE END ultrasonicTask */
+}
+
+/* USER CODE BEGIN Header_sponsorsTask */
+/**
+ * @brief Function implementing the sponsors thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_sponsorsTask */
+void sponsorsTask(void *argument) {
+	/* USER CODE BEGIN sponsorsTask */
+	/* Infinite loop */
+	for (;;) {
+		if (lap_display) {
+
+		} else if (is_sponsor_loop) {
+			if (sponsor_loop_index == 0) {
+				display_logo();
+				// move to next sponsor
+				sponsor_index = (sponsor_index + 1) % 3;
+			}
+			if (sponsor_loop_index >= 50) {
+				sponsor_loop_index = 0;
+			} else {
+				sponsor_loop_index += 1;
+			}
+		}
+		osDelay(100);
+	}
+	/* USER CODE END sponsorsTask */
 }
 
 /**

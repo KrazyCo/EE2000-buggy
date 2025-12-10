@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -104,6 +104,8 @@ void turn_right(uint16_t speed);
 
 /* USER CODE BEGIN Private defines */
 extern uint8_t moving_forward;
+extern bool object_in_path;
+extern bool lap_display;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
