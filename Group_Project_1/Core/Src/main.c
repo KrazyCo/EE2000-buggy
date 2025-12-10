@@ -105,6 +105,10 @@ void poll_buttons(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+uint8_t sponsor_index = 0;
+
+
 void delay(uint16_t time) {
 	__HAL_TIM_SET_COUNTER(&htim1, 0);
 	while (__HAL_TIM_GET_COUNTER(&htim1) < time)
@@ -121,8 +125,7 @@ uint16_t Last_Valid_Distance = 0;
 #define TRIG_PIN GPIO_PIN_9
 #define TRIG_PORT GPIOA
 
-// Let's write the callback function
-
+// callback function
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) // if the interrupt source is channel1
 			{
@@ -578,13 +581,13 @@ void display_menu(void) {
 	SSD1306_Clear();
 
 	SSD1306_GotoXY(5, 0);
-	SSD1306_Puts("B1: Lap Times", &Font_7x10, 1);
+	SSD1306_Puts("B1: Sponsors", &Font_7x10, 1);
 
 	SSD1306_GotoXY(5, 12);
-	SSD1306_Puts("B2: Logo", &Font_7x10, 1);
+	SSD1306_Puts("B2: Lap Times", &Font_7x10, 1);
 
 	SSD1306_GotoXY(5, 24);
-	SSD1306_Puts("B3: Line Follow", &Font_7x10, 1);
+	SSD1306_Puts("B3: Line Following", &Font_7x10, 1);
 
 	SSD1306_GotoXY(5, 36);
 	SSD1306_Puts("B4: Main Menu", &Font_7x10, 1);
@@ -592,104 +595,87 @@ void display_menu(void) {
 	SSD1306_UpdateScreen();
 }
 
-/* Helper: display company logo */
-void display_logo(void) {
-	for (int pulse_count = 0; pulse_count < 2; pulse_count++) {
-		taskENTER_CRITICAL(); // disable interrupts
-		// Display normal framed logo
-		SSD1306_Clear();
+const char* sponsors[3] = {
+    "DMC Motors",
+    "Libyan Plutonium",
+    "BiffCo Enterprise"
+};
 
-		const char *logo = "DMC";
-		FontDef_t *font = &Font_11x18;
+// DMC logo
+void draw_dmc_logo(void) {
+    // Circle
+    SSD1306_DrawCircle(64, 24, 14, SSD1306_COLOR_WHITE);
 
-		int textWidth = 3 * font->FontWidth;
-		int textHeight = font->FontHeight;
+    // Inverted DMC text (white block, black text)
+    SSD1306_DrawFilledRectangle(43, 18, 38, 12, SSD1306_COLOR_WHITE);
 
-		int centerX = 64;
-		int centerY = 32;
-		int textX = centerX - (textWidth / 2);
-		int textY = centerY - (textHeight / 2);
-
-		// Draw a rectangle frame around the screen
-		int framePadding = 4;
-		SSD1306_DrawRectangle(framePadding, framePadding,
-		SSD1306_WIDTH - 2 * framePadding,
-		SSD1306_HEIGHT - 2 * framePadding, SSD1306_COLOR_WHITE);
-
-		// Draw diagonal lines from corners
-		SSD1306_DrawLine(framePadding, framePadding, textX, textY - 2,
-				SSD1306_COLOR_WHITE);
-		SSD1306_DrawLine(SSD1306_WIDTH - framePadding, framePadding,
-				textX + textWidth, textY - 2, SSD1306_COLOR_WHITE);
-
-		// Draw text with circle
-		SSD1306_DrawCircle(centerX, centerY, 22, SSD1306_COLOR_WHITE);
-		SSD1306_GotoXY(textX, textY);
-		SSD1306_Puts("DMC", font, SSD1306_COLOR_WHITE);
-
-		SSD1306_UpdateScreen();
-		taskEXIT_CRITICAL(); // enable interrupts
-		osDelay(500);  // Display normal for 500ms
-
-		// Pulse effect: Invert display
-		taskENTER_CRITICAL();// disable interrupts
-		SSD1306_InvertDisplay(1);
-		SSD1306_UpdateScreen();
-		taskEXIT_CRITICAL(); // enable interrupts
-		osDelay(150);  // Inverted for 150ms
-
-		// Return to normal
-		taskENTER_CRITICAL();// disable interrupts
-		SSD1306_InvertDisplay(0);
-		SSD1306_UpdateScreen();
-		taskEXIT_CRITICAL(); // enable interrupts
-		osDelay(350);  // Normal again before next pulse
-	}
-
-	// Short transition delay
-	osDelay(200);
-
-	// Second: Switch to filled background with inverted text version
-	taskENTER_CRITICAL();// disable interrupts
-	SSD1306_Clear();
-
-	const char *logo2 = "DMC";
-	FontDef_t *font2 = &Font_11x18;
-
-	int textWidth2 = 3 * font2->FontWidth;
-	int textHeight2 = font2->FontHeight;
-
-	int centerX2 = 64;
-	int centerY2 = 32;
-	int textX2 = centerX2 - (textWidth2 / 2);
-	int textY2 = centerY2 - (textHeight2 / 2);
-	int radius = 24;
-
-	// Draw filled circle background
-	SSD1306_DrawFilledCircle(centerX2, centerY2, radius, SSD1306_COLOR_WHITE);
-
-	// Draw text in black (inverted) inside the white circle
-	SSD1306_GotoXY(textX2, textY2);
-	SSD1306_Puts("DMC", font2, SSD1306_COLOR_BLACK);
-
-	// Optional: Add a thin outline circle for definition
-	SSD1306_DrawCircle(centerX2, centerY2, radius, SSD1306_COLOR_BLACK);
-
-	SSD1306_UpdateScreen();
-	taskEXIT_CRITICAL(); // enable interrupts
-
-	// Optional: Add a final pulse to the filled version
-	osDelay(1000);  // Display filled version for 1 second
-	taskENTER_CRITICAL(); // disable interrupts
-	SSD1306_InvertDisplay(1);
-	SSD1306_UpdateScreen();
-	taskEXIT_CRITICAL(); // enable interrupts
-	osDelay(150);
-	taskENTER_CRITICAL(); // disable interrupts
-	SSD1306_InvertDisplay(0);
-	SSD1306_UpdateScreen();
-	taskEXIT_CRITICAL(); // enable interrupts
+    SSD1306_GotoXY(55, 20);
+    SSD1306_Puts("DMC", &Font_7x10, SSD1306_COLOR_BLACK);
 }
+
+// Flux Capacitor Graphic
+void draw_flux_capacitor(void) {
+    int cx = 64;
+    int cy = 22;
+    int radius = 5;
+
+    int topX = cx;
+    int topY = cy - 14;
+
+    int leftX = cx - 18;
+    int leftY = cy + 10;
+
+    int rightX = cx + 18;
+    int rightY = cy + 10;
+
+    SSD1306_DrawCircle(topX, topY, radius, SSD1306_COLOR_WHITE);
+    SSD1306_DrawCircle(leftX, leftY, radius, SSD1306_COLOR_WHITE);
+    SSD1306_DrawCircle(rightX, rightY, radius, SSD1306_COLOR_WHITE);
+
+    SSD1306_DrawLine(topX, topY + radius, cx, cy, SSD1306_COLOR_WHITE);
+    SSD1306_DrawLine(leftX + radius, leftY - radius, cx, cy, SSD1306_COLOR_WHITE);
+    SSD1306_DrawLine(rightX - radius, rightY - radius, cx, cy, SSD1306_COLOR_WHITE);
+}
+
+void draw_biffco_logo(void) {
+
+    // Outer thick rectangle (smaller height: 6 → 30)
+    SSD1306_DrawRectangle(34, 6, 60, 30, SSD1306_COLOR_WHITE);
+    SSD1306_DrawRectangle(36, 8, 56, 26, SSD1306_COLOR_WHITE);
+
+    // Diagonal slash (adjusted to fit inside shorter box)
+    SSD1306_DrawLine(34, 6, 94, 30, SSD1306_COLOR_WHITE);
+    SSD1306_DrawLine(36, 8, 92, 28, SSD1306_COLOR_WHITE);
+
+    // Big center B (moved upward so it stays inside box)
+    SSD1306_GotoXY(58, 12);
+    SSD1306_Puts("B", &Font_11x18, SSD1306_COLOR_WHITE);
+}
+
+void display_logo(void) {
+    SSD1306_Clear();
+
+    // --- Draw correct logo based on sponsor ---
+    if (sponsor_index == 0) {
+        draw_dmc_logo();
+    }
+    else if (sponsor_index == 1) {
+        draw_flux_capacitor();
+    }
+    else if (sponsor_index == 2) {
+        draw_biffco_logo();
+    }
+
+    SSD1306_GotoXY(10, 40);
+    SSD1306_Puts("Sponsored by:", &Font_7x10, SSD1306_COLOR_WHITE);
+
+    // Sponsor name (bottom)
+    SSD1306_GotoXY(10, 52);
+    SSD1306_Puts(sponsors[sponsor_index], &Font_7x10, SSD1306_COLOR_WHITE);
+
+    SSD1306_UpdateScreen();
+}
+
 
 void display_lap_times(void) {
 	SSD1306_Clear();
@@ -725,6 +711,7 @@ void display_lap_times(void) {
 	SSD1306_UpdateScreen();
 }
 
+// Head light flashes
 void blink_logo_led(uint8_t times) {
 	for (uint8_t i = 0; i < times; i++) {
 		HAL_GPIO_WritePin(LOGO_LED_GPIO_PORT, LOGO_LED_PIN, GPIO_PIN_SET);
@@ -749,12 +736,18 @@ void poll_buttons(void) {
 
 	// Button 1: Display company logo
 	if (btn1_now == GPIO_PIN_SET && btn1_prev == 0
-			&& (t - btn1_last > DEBOUNCE_MS)) {
-		display_logo();                 // OLED logo animation
-		blink_logo_led(8);        // <-- D10 LED blink (4 times @ 500 ms on/off)
-		btn1_last = t;
+	    && (t - btn1_last > DEBOUNCE_MS)) {
 
+	    // move to next sponsor
+	    sponsor_index = (sponsor_index + 1) % 3;
+
+	    // redraw logo with new sponsor
+	    display_logo();
+
+	    blink_logo_led(2);  // shorter blink for sponsor switch
+	    btn1_last = t;
 	}
+
 	btn1_prev = btn1_now;
 
 	// Button 2: Display lap times
