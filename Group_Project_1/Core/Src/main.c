@@ -658,6 +658,7 @@ void draw_flux_capacitor(void) {
 			SSD1306_COLOR_WHITE);
 }
 
+//BiffCo logo
 void draw_biffco_logo(void) {
 
 	// Outer thick rectangle (smaller height: 6 → 30)
@@ -727,6 +728,24 @@ void display_lap_times(void) {
 	SSD1306_Puts(buf, &Font_7x10, 1);
 
 	SSD1306_UpdateScreen();
+}
+
+void display_lap_finished(void) {
+    SSD1306_Clear();
+
+    SSD1306_GotoXY(5, 4);
+    SSD1306_Puts("88 MPH REACHED!", &Font_7x10, SSD1306_COLOR_WHITE);
+
+    SSD1306_GotoXY(5, 26);
+    SSD1306_Puts("1.21 GIGAWATTS", &Font_7x10, SSD1306_COLOR_WHITE);
+
+    SSD1306_GotoXY(20, 38);
+    SSD1306_Puts("ACHIEVED", &Font_7x10, SSD1306_COLOR_WHITE);
+
+    SSD1306_GotoXY(22, 52);
+    SSD1306_Puts("LAP FINISHED!", &Font_7x10, SSD1306_COLOR_WHITE);
+
+    SSD1306_UpdateScreen();
 }
 
 void blink_logo_led(uint8_t times) {
