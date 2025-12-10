@@ -1,4 +1,5 @@
-../Core/Src/line_following.c:30:6:line_following_init	8	static
-../Core/Src/line_following.c:37:6:line_following_loop	40	static
-../Core/Src/line_following.c:142:6:lap_passed	16	static
-../Core/Src/line_following.c:154:6:save_lap_time	16	static
+../Core/Src/line_following.c:34:6:line_following_init	8	static
+../Core/Src/line_following.c:41:6:line_following_loop	40	static
+../Core/Src/line_following.c:147:6:lap_passed	16	static
+../Core/Src/line_following.c:160:6:save_lap_time	16	static
+../Core/Src/line_following.c:171:10:calculate_lap_speed	32	static

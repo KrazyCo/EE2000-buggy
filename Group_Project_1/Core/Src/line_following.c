@@ -14,7 +14,10 @@
 #include "task.h"
 #include "stdbool.h"
 
-void save_lap_time(uint32_t lap_time);
+void save_lap_time(uint32_t lap_time, uint32_t stopped_time);
+uint16_t calculate_lap_speed(uint32_t lap_time, uint32_t stopped_time);
+
+#define METERS_PER_SECOND 0.0105
 
 enum Direction last_turn_direction;
 int left_turn_amount;
@@ -25,7 +28,8 @@ bool currently_moving = false;
 uint32_t lap_start_tick;
 volatile uint32_t lap_ticks_stopped;
 bool currently_in_lap = false;
-float last_three_lap_times[3] = {0};
+uint32_t last_three_lap_times[3] = {0};
+uint16_t last_three_lap_speeds[3] = {0};
 
 void line_following_init() {
 	last_turn_direction = FORWARD;
@@ -55,6 +59,7 @@ void line_following_loop(TIM_HandleTypeDef *htim) {
 	}
 	if (!currently_in_lap) {
 		lap_start_tick = HAL_GetTick();
+		lap_ticks_stopped = 0;
 		currently_in_lap = true;
 	}
 	// Read initial IR sensor values
@@ -142,8 +147,9 @@ void line_following_loop(TIM_HandleTypeDef *htim) {
 void lap_passed() {
 	if (!lap_finished) {
 		int currentTick = HAL_GetTick();
-		save_lap_time(currentTick - lap_start_tick);
+		save_lap_time(currentTick - lap_start_tick, lap_ticks_stopped);
 		lap_start_tick = currentTick;
+		lap_ticks_stopped = 0;
 		request_playNote = true;
 		lap_finished = true;
 		lap_count += 1;
@@ -151,8 +157,19 @@ void lap_passed() {
 	}
 }
 
-void save_lap_time(uint32_t lap_time) {
+void save_lap_time(uint32_t lap_time, uint32_t stopped_time) {
 	last_three_lap_times[2] = last_three_lap_times[1];
 	last_three_lap_times[1] = last_three_lap_times[0];
-	last_three_lap_times[0] = (float)lap_time/1000.0;
+	last_three_lap_times[0] = lap_time;
+
+	last_three_lap_speeds[2] = last_three_lap_speeds[1];
+	last_three_lap_speeds[1] = last_three_lap_speeds[0];
+	last_three_lap_speeds[0] = calculate_lap_speed(lap_time, stopped_time);
+}
+
+// 000123 -> 000.123
+uint16_t calculate_lap_speed(uint32_t lap_time, uint32_t stopped_time) {
+	uint32_t moving_time = lap_time - stopped_time;
+	float speed = ((float)moving_time * METERS_PER_SECOND)/(float)lap_time;
+	return (uint16_t)(speed*10000.0);
 }
