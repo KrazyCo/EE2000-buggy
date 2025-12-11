@@ -61,10 +61,12 @@ volatile uint16_t k = 0;
 // Melody definition
 // Current note index
 
-float note[] = { So, Fa, Fa, Re, Mi, So, Mi, So, No, So, Fa, Fa, Re, Mi, So, Mi,
-So, No, };
-float beat[] = { b1, b2, b2, b3, b1, b3, b2, b1, b1, b1, b2, b3, b3, b1, b3, b2,
-b1, b1, };
+float note[] = { Re, Fa, Fa, Re, Mi, So, So, No, Mi, Fa, Fa, Re, Mi, So, So, No,
+		Do, Mi, Re, No, Do, Re, No, Mi, Fa, So, No, So, No, So, Fa, Mi, So, No,
+		So, Fa, Re, No, Re, No, };
+float beat[] = { b1, b2, b2, b2, b2, b2, b2, b1, b1, b2, b3, b3, b1, b3, b2, b1,
+		b3, b4, b3, b3, b3, b3, b3, b1, b1, b1, b2, b1, b2, b2, b3, b3, b4, b2,
+		b2, b2, b2, b3, b1, b1, };
 //start up tune
 uint16_t noteCount;
 
@@ -158,11 +160,6 @@ void poll_buttons(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void delay(uint16_t time) {
-	__HAL_TIM_SET_COUNTER(&htim1, 0);
-	while (__HAL_TIM_GET_COUNTER(&htim1) < time)
-		;
-}
 
 uint32_t IC_Val1 = 0;
 uint32_t IC_Val2 = 0;
@@ -182,11 +179,19 @@ bool stored_stop_tick = false;
 uint32_t button_stopped_start_tick;
 bool button_stored_stop_tick = false;
 bool last_lap_displayed_raw = false;
+int ultrasonic_count = 0;
 
 #define TRIG_PIN GPIO_PIN_9
 #define TRIG_PORT GPIOA
 
 // Let's write the callback function
+// HCSR-04 Tutorial used, source: https://www.youtube.com/watch?v=ti_1ZwRolU4&t=7s
+
+void delay(uint16_t time) {
+	__HAL_TIM_SET_COUNTER(&htim1, 0);
+	while (__HAL_TIM_GET_COUNTER(&htim1) < time)
+		;
+}
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) // if the interrupt source is channel1
@@ -762,10 +767,9 @@ const char *sponsors[3] = { "DMC Motors", "Libyan Plutonium",
 // DMC logo
 void draw_dmc_logo(void) {
 	taskENTER_CRITICAL(); // disable interrupts
-	// Circle
+
 	SSD1306_DrawCircle(64, 24, 14, SSD1306_COLOR_WHITE);
 
-	// Inverted DMC text (white block, black text)
 	SSD1306_DrawFilledRectangle(45, 18, 38, 12, SSD1306_COLOR_WHITE);
 
 	SSD1306_GotoXY(54, 20);
@@ -773,19 +777,21 @@ void draw_dmc_logo(void) {
 	taskEXIT_CRITICAL(); // enable interrupts
 }
 
-// Flux Capacitor Graphic
+// Flux Capacitor logo
 void draw_flux_capacitor(void) {
 	taskENTER_CRITICAL(); // disable interrupts
+	// Centre point of OLED screen
 	int cx = 64;
 	int cy = 22;
+	// Circle radiuses
 	int radius = 5;
-
+	// Top circle
 	int topX = cx;
 	int topY = cy - 14;
-
+	// Left circle
 	int leftX = cx - 18;
 	int leftY = cy + 10;
-
+	// Right circle
 	int rightX = cx + 18;
 	int rightY = cy + 10;
 
@@ -793,6 +799,7 @@ void draw_flux_capacitor(void) {
 	SSD1306_DrawCircle(leftX, leftY, radius, SSD1306_COLOR_WHITE);
 	SSD1306_DrawCircle(rightX, rightY, radius, SSD1306_COLOR_WHITE);
 
+	// Lines between circles
 	SSD1306_DrawLine(topX, topY + radius, cx, cy, SSD1306_COLOR_WHITE);
 	SSD1306_DrawLine(leftX + radius, leftY - radius, cx, cy,
 			SSD1306_COLOR_WHITE);
@@ -805,15 +812,14 @@ void draw_flux_capacitor(void) {
 void draw_biffco_logo(void) {
 	taskENTER_CRITICAL(); // disable interrupts
 
-	// Outer thick rectangle (smaller height: 6 → 30)
+	// Outer and inner Rectangles
 	SSD1306_DrawRectangle(34, 6, 60, 30, SSD1306_COLOR_WHITE);
 	SSD1306_DrawRectangle(36, 8, 56, 26, SSD1306_COLOR_WHITE);
 
-	// Diagonal slash (adjusted to fit inside shorter box)
+	// Diagonal line within rectangle
 	SSD1306_DrawLine(34, 6, 94, 30, SSD1306_COLOR_WHITE);
 	SSD1306_DrawLine(36, 8, 92, 28, SSD1306_COLOR_WHITE);
 
-	// Big center B (moved upward so it stays inside box)
 	SSD1306_GotoXY(60, 12);
 	SSD1306_Puts("B", &Font_11x18, SSD1306_COLOR_WHITE);
 	taskEXIT_CRITICAL(); // enable interrupts
@@ -823,7 +829,6 @@ void display_logo(void) {
 	taskENTER_CRITICAL(); // disable interrupts
 	SSD1306_Clear();
 
-	// --- Draw correct logo based on sponsor ---
 	if (sponsor_index == 0) {
 		draw_dmc_logo();
 	} else if (sponsor_index == 1) {
@@ -835,7 +840,6 @@ void display_logo(void) {
 	SSD1306_GotoXY(10, 40);
 	SSD1306_Puts("Sponsored by:", &Font_7x10, SSD1306_COLOR_WHITE);
 
-	// Sponsor name (bottom)
 	SSD1306_GotoXY(10, 52);
 	SSD1306_Puts(sponsors[sponsor_index], &Font_7x10, SSD1306_COLOR_WHITE);
 
@@ -920,7 +924,6 @@ void display_fastest_lap_times(void) {
 		slowestIndex = 2;
 	}
 
-
 	// ---------- Fastest ----------
 	seconds = last_three_lap_times[fastestIndex] / 1000;
 	tenths = (last_three_lap_times[fastestIndex] / 100) % 10;
@@ -948,14 +951,16 @@ void display_fastest_lap_times(void) {
 	SSD1306_Puts(buf, &Font_7x10, 1);
 
 	// ---------- Average ----------
-	uint32_t average_time = (last_three_lap_times[0] + last_three_lap_times[1] + last_three_lap_times[2]) / 3;
+	uint32_t average_time = (last_three_lap_times[0] + last_three_lap_times[1]
+			+ last_three_lap_times[2]) / 3;
 	seconds = average_time / 1000;
 	tenths = (average_time / 100) % 10;
 	snprintf(buf, sizeof(buf), "Average: %d.%d sec", seconds, tenths);
 	SSD1306_GotoXY(5, 40);
 	SSD1306_Puts(buf, &Font_7x10, 1);
 
-	uint32_t average_speed = (last_three_lap_speeds[0] + last_three_lap_speeds[1] + last_three_lap_speeds[2]) / 3;
+	uint32_t average_speed = (last_three_lap_speeds[0]
+			+ last_three_lap_speeds[1] + last_three_lap_speeds[2]) / 3;
 	speedOnes = average_speed / 1000;
 	speedMills = average_speed % 1000;
 	snprintf(buf, sizeof(buf), "Speed: %d.%03dm/s", speedOnes, speedMills);
@@ -969,6 +974,7 @@ void display_fastest_lap_times(void) {
 void display_lap_finished(void) {
 	taskENTER_CRITICAL(); // disable interrupts
 	SSD1306_Clear();
+
 	SSD1306_GotoXY(5, 5);
 	SSD1306_Puts("LAP DONE", &Font_11x18, SSD1306_COLOR_WHITE);
 
@@ -987,10 +993,10 @@ void display_lap_finished(void) {
 void blink_logo_led(uint8_t times) {
 	for (uint8_t i = 0; i < times; i++) {
 		HAL_GPIO_WritePin(LOGO_LED_GPIO_PORT, LOGO_LED_PIN, GPIO_PIN_SET);
-		osDelay(500); // LED ON  500 ms
+		osDelay(500); // LED on for 500 ms
 
 		HAL_GPIO_WritePin(LOGO_LED_GPIO_PORT, LOGO_LED_PIN, GPIO_PIN_RESET);
-		osDelay(250); // LED OFF 250 ms
+		osDelay(250); // LED off for 250 ms
 	}
 }
 
@@ -1006,22 +1012,21 @@ void poll_buttons(void) {
 	uint8_t btn3_now = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4);
 	uint8_t btn4_now = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
 
-	// Button 1: Display company logo
+	// B1: Sponsors
 	if (btn1_now == GPIO_PIN_SET && btn1_prev == 0
 			&& (t - btn1_last > DEBOUNCE_MS)) {
 
-		is_sponsor_loop = false; // we dont want to loop through
-		// move to next sponsor
+		is_sponsor_loop = false;
 		sponsor_index = (sponsor_index + 1) % 3;
 		display_logo();
-
-		blink_logo_led(2);  // shorter blink for sponsor switch
+		// Blink LEDs twice every sponsor switch
+		blink_logo_led(2);
 		btn1_last = t;
 	}
 
 	btn1_prev = btn1_now;
 
-	// Button 2: Display lap times
+	// B2: Lap times
 	if (btn2_now == GPIO_PIN_SET && btn2_prev == 0
 			&& (t - btn2_last > DEBOUNCE_MS)) {
 		is_sponsor_loop = false;
@@ -1037,7 +1042,7 @@ void poll_buttons(void) {
 	}
 	btn2_prev = btn2_now;
 
-	// Button 3: Display logo and move forward
+	// B3: Line following
 	if (btn3_now == GPIO_PIN_SET && btn3_prev == 0
 			&& (t - btn3_last > DEBOUNCE_MS)) {
 		if (moving_forward) {
@@ -1061,11 +1066,11 @@ void poll_buttons(void) {
 	}
 	btn3_prev = btn3_now;
 
-	// Button 4: Return to main menu
+	// B4: Main menu
 	if (btn4_now == GPIO_PIN_SET && btn4_prev == 0
 			&& (t - btn4_last > DEBOUNCE_MS)) {
 		is_sponsor_loop = false;
-		display_menu();   // redraw the selection screen
+		display_menu();
 		btn4_last = t;
 	}
 	btn4_prev = btn4_now;
@@ -1121,20 +1126,27 @@ void ultrasonicTask(void *argument) {
 		HCSR04_Read();
 		osDelay(200);
 		if (Distance < 15) {
-			if (moving_forward) {
-				request_playNote2 = true;
-				if (!stored_stop_tick) {
-					stopped_start_tick = HAL_GetTick();
-					stored_stop_tick = true;
+			if (ultrasonic_count >= 1) {
+				if (moving_forward) {
+					request_playNote2 = true;
+					if (!stored_stop_tick) {
+						stopped_start_tick = HAL_GetTick();
+						stored_stop_tick = true;
+					}
+				}
+				object_in_path = true;
+			} else {
+				ultrasonic_count += 1;
+			}
+		} else {
+			if (ultrasonic_count >= 1) {
+				if (stored_stop_tick) {
+					lap_ticks_stopped += HAL_GetTick() - stopped_start_tick;
+					stored_stop_tick = false;
 				}
 			}
-			object_in_path = true;
-		} else {
-			if (stored_stop_tick) {
-				lap_ticks_stopped += HAL_GetTick() - stopped_start_tick;
-				stored_stop_tick = false;
-			}
 			object_in_path = false;
+			ultrasonic_count = 0;
 		}
 	}
 	/* USER CODE END ultrasonicTask */
@@ -1197,11 +1209,11 @@ void speakerTask(void *argument) {
 	for (;;) {
 		if (request_playNote) {
 			request_playNote = false;
-//			playNote();
+			playNote();
 		}
 		if (request_playNote2) {
 			request_playNote2 = false;
-//			playNote2();
+			playNote2();
 		}
 		osDelay(100);
 	}
